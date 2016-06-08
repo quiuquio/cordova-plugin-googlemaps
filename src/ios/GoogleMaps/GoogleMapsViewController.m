@@ -585,19 +585,19 @@ NSDictionary *initOptions;
 //  
   // Fill the body area with WHITE color
   CGContextRef context = UIGraphicsGetCurrentContext();
-  CGContextSetAllowsAntialiasing(context, true);
-  CGContextSetRGBFillColor(context, 1.0, 1.0, 1.0, 1.0);
-  
-  if (isTextMode) {
-
-    if (snippet) {
-      CGContextFillRect(context, CGRectMake(centerPos - x + 5, 4, rectSize.width - (centerPos - x + 7), rectSize.height - 16));
-    } else {
-      CGContextFillRect(context, CGRectMake(centerPos - x + 5, 0, rectSize.width - (centerPos - x + 7), rectSize.height - 11));
-    }
-  } else {
-    CGContextFillRect(context, CGRectMake(centerPos - x + 5, 4, rectSize.width - (centerPos - x + 5), rectSize.height - 16));
-  }
+//  CGContextSetAllowsAntialiasing(context, true);
+//  CGContextSetRGBFillColor(context, 1.0, 1.0, 1.0, 1.0);
+//  
+//  if (isTextMode) {
+//
+//    if (snippet) {
+//      CGContextFillRect(context, CGRectMake(centerPos - x + 5, 4, rectSize.width - (centerPos - x + 7), rectSize.height - 16));
+//    } else {
+//      CGContextFillRect(context, CGRectMake(centerPos - x + 5, 0, rectSize.width - (centerPos - x + 7), rectSize.height - 11));
+//    }
+//  } else {
+//    CGContextFillRect(context, CGRectMake(centerPos - x + 5, 4, rectSize.width - (centerPos - x + 5), rectSize.height - 16));
+//  }
   
   //--------------------------------
   // text-align: left/center/right
