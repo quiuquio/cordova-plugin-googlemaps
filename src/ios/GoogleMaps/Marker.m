@@ -49,7 +49,7 @@
         [marker setOpacity:[[json valueForKey:@"opacity"] floatValue]];
     }
     if ([json valueForKey:@"zIndex"]) {
-        [marker setZIndex:[[json valueForKey:@"zIndex"] intValue]];
+        // [marker setZIndex:[[json valueForKey:@"zIndex"] intValue]]; // modified
     }
     
     NSString *id = [NSString stringWithFormat:@"marker_%lu", (unsigned long)marker.hash];

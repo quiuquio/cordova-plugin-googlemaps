@@ -365,224 +365,224 @@ NSDictionary *initOptions;
     styles = [properties objectForKey:@"styles"];
   }
   
-  // Load images
-  UIImage *leftImg = nil;
-  UIImage *rightImg = nil;[self loadImageFromGoogleMap:@"bubble_right@2x"];
-  leftImg = [self loadImageFromGoogleMap:@"bubble_left@2x"];
-  rightImg = [self loadImageFromGoogleMap:@"bubble_right@2x"];
-  float scale = leftImg.scale;
-  int sizeEdgeWidth = 10;
-
-	int width = 0;
-
-	if (styles && [styles objectForKey:@"width"]) {
-		NSString *widthString = [styles valueForKey:@"width"];
-        
-        // check if string is numeric
-        NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
-        BOOL isNumeric = [nf numberFromString:widthString] != nil;
-
-		if ([widthString hasSuffix:@"%"]) {
-			double widthDouble = [[widthString stringByReplacingOccurrencesOfString:@"%" withString:@""] doubleValue];
-			
-			width = (int)((double)mapView.frame.size.width * (widthDouble / 100));
-		} else if (isNumeric) {
-			double widthDouble = [widthString doubleValue];
-
-			if (widthDouble <= 1.0) {
-				width = (int)((double)mapView.frame.size.width * (widthDouble));
-			} else {
-				width = (int)widthDouble;
-			}
-		}
-	}
-
-	int maxWidth = 0;
-
-	if (styles && [styles objectForKey:@"maxWidth"]) {
-		NSString *widthString = [styles valueForKey:@"maxWidth"];
-		
-        NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
-        BOOL isNumeric = [nf numberFromString:widthString] != nil;
-        
-		if ([widthString hasSuffix:@"%"]) {
-			double widthDouble = [[widthString stringByReplacingOccurrencesOfString:@"%" withString:@""] doubleValue];
-			
-			maxWidth = (int)((double)mapView.frame.size.width * (widthDouble / 100));
-			
-			// make sure to take padding into account.
-			maxWidth -= sizeEdgeWidth;
-		} else if (isNumeric) {
-			double widthDouble = [widthString doubleValue];
-			
-			if (widthDouble <= 1.0) {
-				maxWidth = (int)((double)mapView.frame.size.width * (widthDouble));
-			} else {
-				maxWidth = (int)widthDouble;
-			}
-		}
-	}
-
-  //-------------------------------------
-  // Calculate the size for the contents
-  //-------------------------------------
-  if ([title rangeOfString:@"data:image/"].location != NSNotFound &&
-      [title rangeOfString:@";base64,"].location != NSNotFound) {
-    
-    isTextMode = false;
-    NSArray *tmp = [title componentsSeparatedByString:@","];
-    NSData *decodedData;
-    #ifdef __IPHONE_7_0
-      if ([PluginUtil isIOS7_OR_OVER]) {
-        decodedData = [[NSData alloc] initWithBase64Encoding:(NSString *)tmp[1]];
-      } else {
-        decodedData = [NSData dataFromBase64String:tmp[1]];
-      }
-    #else
-      decodedData = [NSData dataFromBase64String:tmp[1]];
-    #endif
-    
-    base64Image = [[UIImage alloc] initWithData:decodedData];
-    rectSize = CGSizeMake(base64Image.size.width + leftImg.size.width, base64Image.size.height + leftImg.size.height / 2);
-    
-  } else {
-  
-    isTextMode = true;
-    
-    BOOL isBold = FALSE;
-    BOOL isItalic = FALSE;
-    if (styles) {
-      if ([[styles objectForKey:@"font-style"] isEqualToString:@"italic"]) {
-        isItalic = TRUE;
-      }
-      if ([[styles objectForKey:@"font-weight"] isEqualToString:@"bold"]) {
-        isBold = TRUE;
-      }
-    }
-    if (isBold == TRUE && isItalic == TRUE) {
-      if ([PluginUtil isIOS7_OR_OVER] == true) {
-        // ref: http://stackoverflow.com/questions/4713236/how-do-i-set-bold-and-italic-on-uilabel-of-iphone-ipad#21777132
-        titleFont = [UIFont systemFontOfSize:17.0f];
-        UIFontDescriptor *fontDescriptor = [titleFont.fontDescriptor
-                                                fontDescriptorWithSymbolicTraits:UIFontDescriptorTraitBold | UIFontDescriptorTraitItalic];
-        titleFont = [UIFont fontWithDescriptor:fontDescriptor size:0];
-      } else {
-        titleFont = [UIFont fontWithName:@"Helvetica-BoldOblique" size:17.0];
-      }
-    } else if (isBold == TRUE && isItalic == FALSE) {
-      titleFont = [UIFont boldSystemFontOfSize:17.0f];
-    } else if (isBold == TRUE && isItalic == FALSE) {
-      titleFont = [UIFont italicSystemFontOfSize:17.0f];
-    } else {
-      titleFont = [UIFont systemFontOfSize:17.0f];
-    }
-    
-    // Calculate the size for the title strings
-    textSize = [title sizeWithFont:titleFont constrainedToSize: CGSizeMake(mapView.frame.size.width - 13, mapView.frame.size.height - 13)];
-    rectSize = CGSizeMake(textSize.width + 10, textSize.height + 22);
-    
-    // Calculate the size for the snippet strings
-    if (snippet) {
-      snippetFont = [UIFont systemFontOfSize:12.0f];
-      snippet = [snippet stringByReplacingOccurrencesOfString:@"\n" withString:@""];
-      snippetSize = [snippet sizeWithFont:snippetFont constrainedToSize: CGSizeMake(mapView.frame.size.width - 13, mapView.frame.size.height - 13)];
-      rectSize.height += snippetSize.height + 4;
-      if (rectSize.width < snippetSize.width + leftImg.size.width) {
-        rectSize.width = snippetSize.width + leftImg.size.width;
-      }
-    }
-  }
-  if (rectSize.width < leftImg.size.width * scale) {
-    rectSize.width = leftImg.size.width * scale;
-  } else {
-    rectSize.width += sizeEdgeWidth;
-  }
-	
-	if (width > 0) {
-		rectSize.width = width;
-	}
-	if (maxWidth > 0 &&
-		maxWidth < rectSize.width) {
-		rectSize.width = maxWidth;
-	}
-  
-  //-------------------------------------
-  // Draw the the info window
-  //-------------------------------------
-  UIGraphicsBeginImageContextWithOptions(rectSize, NO, 0.0f);
-  
-  CGRect trimArea = CGRectMake(15, 0, 5, MIN(45, rectSize.height - 20));
-  
-  trimArea = CGRectMake(15, 0, 15, leftImg.size.height);
-  if (scale > 1.0f) {
-    trimArea = CGRectMake(trimArea.origin.x * scale,
-                      trimArea.origin.y * scale,
-                      trimArea.size.width * scale +1,
-                      trimArea.size.height * scale);
-  }
-  CGImageRef shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
-  UIImage *shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
-  UIImage *shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
-
-  int y;
-  int i = 0;
-  int x = shadowImageLeft.size.width;
-  float centerPos = rectSize.width * 0.5f;
-  while (centerPos - x > shadowImageLeft.size.width) {
-    y = 1;
-    while (y + shadowImageLeft.size.height < rectSize.height) {
-      [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
-      [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
-      y += shadowImageRight.size.height;
-    }
-    y = rectSize.height - shadowImageLeft.size.height;
-    [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
-    [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
-    
-    if (i == 0) {
-      x += 5;
-    
-      trimArea = CGRectMake(15, 0, 5, leftImg.size.height);
-      if (scale > 1.0f) {
-        trimArea = CGRectMake(trimArea.origin.x * scale,
-                          trimArea.origin.y * scale,
-                          trimArea.size.width * scale,
-                          trimArea.size.height * scale);
-      }
-      shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
-      shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
-      shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
-    
-    } else {
-      x += shadowImageLeft.size.width;
-    }
-    i++;
-  }
-  
-  // Draw left & right side edges
-  x -= shadowImageLeft.size.width;
-  trimArea = CGRectMake(0, 0, sizeEdgeWidth, leftImg.size.height);
-  if (scale > 1.0f) {
-    trimArea = CGRectMake(trimArea.origin.x * scale,
-                      trimArea.origin.y * scale,
-                      trimArea.size.width * scale,
-                      trimArea.size.height * scale);
-  }
-  shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
-  shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
-  shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
-  x += shadowImageLeft.size.width;
-  
-  y = 1;
-  while (y + shadowImageLeft.size.height < rectSize.height) {
-    [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
-    [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
-    y += shadowImageRight.size.height;
-  }
-  y = rectSize.height - shadowImageLeft.size.height;
-  [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
-  [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
-  
+//  // Load images
+//  UIImage *leftImg = nil;
+//  UIImage *rightImg = nil;[self loadImageFromGoogleMap:@"bubble_right@2x"];
+//  leftImg = [self loadImageFromGoogleMap:@"bubble_left@2x"];
+//  rightImg = [self loadImageFromGoogleMap:@"bubble_right@2x"];
+//  float scale = leftImg.scale;
+//  int sizeEdgeWidth = 10;
+//
+//	int width = 0;
+//
+//	if (styles && [styles objectForKey:@"width"]) {
+//		NSString *widthString = [styles valueForKey:@"width"];
+//        
+//        // check if string is numeric
+//        NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
+//        BOOL isNumeric = [nf numberFromString:widthString] != nil;
+//
+//		if ([widthString hasSuffix:@"%"]) {
+//			double widthDouble = [[widthString stringByReplacingOccurrencesOfString:@"%" withString:@""] doubleValue];
+//			
+//			width = (int)((double)mapView.frame.size.width * (widthDouble / 100));
+//		} else if (isNumeric) {
+//			double widthDouble = [widthString doubleValue];
+//
+//			if (widthDouble <= 1.0) {
+//				width = (int)((double)mapView.frame.size.width * (widthDouble));
+//			} else {
+//				width = (int)widthDouble;
+//			}
+//		}
+//	}
+//
+//	int maxWidth = 0;
+//
+//	if (styles && [styles objectForKey:@"maxWidth"]) {
+//		NSString *widthString = [styles valueForKey:@"maxWidth"];
+//		
+//        NSNumberFormatter *nf = [[NSNumberFormatter alloc] init];
+//        BOOL isNumeric = [nf numberFromString:widthString] != nil;
+//        
+//		if ([widthString hasSuffix:@"%"]) {
+//			double widthDouble = [[widthString stringByReplacingOccurrencesOfString:@"%" withString:@""] doubleValue];
+//			
+//			maxWidth = (int)((double)mapView.frame.size.width * (widthDouble / 100));
+//			
+//			// make sure to take padding into account.
+//			maxWidth -= sizeEdgeWidth;
+//		} else if (isNumeric) {
+//			double widthDouble = [widthString doubleValue];
+//			
+//			if (widthDouble <= 1.0) {
+//				maxWidth = (int)((double)mapView.frame.size.width * (widthDouble));
+//			} else {
+//				maxWidth = (int)widthDouble;
+//			}
+//		}
+//	}
+//
+//  //-------------------------------------
+//  // Calculate the size for the contents
+//  //-------------------------------------
+//  if ([title rangeOfString:@"data:image/"].location != NSNotFound &&
+//      [title rangeOfString:@";base64,"].location != NSNotFound) {
+//    
+//    isTextMode = false;
+//    NSArray *tmp = [title componentsSeparatedByString:@","];
+//    NSData *decodedData;
+//    #ifdef __IPHONE_7_0
+//      if ([PluginUtil isIOS7_OR_OVER]) {
+//        decodedData = [[NSData alloc] initWithBase64Encoding:(NSString *)tmp[1]];
+//      } else {
+//        decodedData = [NSData dataFromBase64String:tmp[1]];
+//      }
+//    #else
+//      decodedData = [NSData dataFromBase64String:tmp[1]];
+//    #endif
+//    
+//    base64Image = [[UIImage alloc] initWithData:decodedData];
+//    rectSize = CGSizeMake(base64Image.size.width + leftImg.size.width, base64Image.size.height + leftImg.size.height / 2);
+//    
+//  } else {
+//  
+//    isTextMode = true;
+//    
+//    BOOL isBold = FALSE;
+//    BOOL isItalic = FALSE;
+//    if (styles) {
+//      if ([[styles objectForKey:@"font-style"] isEqualToString:@"italic"]) {
+//        isItalic = TRUE;
+//      }
+//      if ([[styles objectForKey:@"font-weight"] isEqualToString:@"bold"]) {
+//        isBold = TRUE;
+//      }
+//    }
+//    if (isBold == TRUE && isItalic == TRUE) {
+//      if ([PluginUtil isIOS7_OR_OVER] == true) {
+//        // ref: http://stackoverflow.com/questions/4713236/how-do-i-set-bold-and-italic-on-uilabel-of-iphone-ipad#21777132
+//        titleFont = [UIFont systemFontOfSize:17.0f];
+//        UIFontDescriptor *fontDescriptor = [titleFont.fontDescriptor
+//                                                fontDescriptorWithSymbolicTraits:UIFontDescriptorTraitBold | UIFontDescriptorTraitItalic];
+//        titleFont = [UIFont fontWithDescriptor:fontDescriptor size:0];
+//      } else {
+//        titleFont = [UIFont fontWithName:@"Helvetica-BoldOblique" size:17.0];
+//      }
+//    } else if (isBold == TRUE && isItalic == FALSE) {
+//      titleFont = [UIFont boldSystemFontOfSize:17.0f];
+//    } else if (isBold == TRUE && isItalic == FALSE) {
+//      titleFont = [UIFont italicSystemFontOfSize:17.0f];
+//    } else {
+//      titleFont = [UIFont systemFontOfSize:17.0f];
+//    }
+//    
+//    // Calculate the size for the title strings
+//    textSize = [title sizeWithFont:titleFont constrainedToSize: CGSizeMake(mapView.frame.size.width - 13, mapView.frame.size.height - 13)];
+//    rectSize = CGSizeMake(textSize.width + 10, textSize.height + 22);
+//    
+//    // Calculate the size for the snippet strings
+//    if (snippet) {
+//      snippetFont = [UIFont systemFontOfSize:12.0f];
+//      snippet = [snippet stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+//      snippetSize = [snippet sizeWithFont:snippetFont constrainedToSize: CGSizeMake(mapView.frame.size.width - 13, mapView.frame.size.height - 13)];
+//      rectSize.height += snippetSize.height + 4;
+//      if (rectSize.width < snippetSize.width + leftImg.size.width) {
+//        rectSize.width = snippetSize.width + leftImg.size.width;
+//      }
+//    }
+//  }
+//  if (rectSize.width < leftImg.size.width * scale) {
+//    rectSize.width = leftImg.size.width * scale;
+//  } else {
+//    rectSize.width += sizeEdgeWidth;
+//  }
+//	
+//	if (width > 0) {
+//		rectSize.width = width;
+//	}
+//	if (maxWidth > 0 &&
+//		maxWidth < rectSize.width) {
+//		rectSize.width = maxWidth;
+//	}
+//  
+//  //-------------------------------------
+//  // Draw the the info window
+//  //-------------------------------------
+//  UIGraphicsBeginImageContextWithOptions(rectSize, NO, 0.0f);
+//  
+//  CGRect trimArea = CGRectMake(15, 0, 5, MIN(45, rectSize.height - 20));
+//  
+//  trimArea = CGRectMake(15, 0, 15, leftImg.size.height);
+//  if (scale > 1.0f) {
+//    trimArea = CGRectMake(trimArea.origin.x * scale,
+//                      trimArea.origin.y * scale,
+//                      trimArea.size.width * scale +1,
+//                      trimArea.size.height * scale);
+//  }
+//  CGImageRef shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
+//  UIImage *shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
+//  UIImage *shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
+//
+//  int y;
+//  int i = 0;
+//  int x = shadowImageLeft.size.width;
+//  float centerPos = rectSize.width * 0.5f;
+//  while (centerPos - x > shadowImageLeft.size.width) {
+//    y = 1;
+//    while (y + shadowImageLeft.size.height < rectSize.height) {
+//      [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
+//      [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
+//      y += shadowImageRight.size.height;
+//    }
+//    y = rectSize.height - shadowImageLeft.size.height;
+//    [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
+//    [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
+//    
+//    if (i == 0) {
+//      x += 5;
+//    
+//      trimArea = CGRectMake(15, 0, 5, leftImg.size.height);
+//      if (scale > 1.0f) {
+//        trimArea = CGRectMake(trimArea.origin.x * scale,
+//                          trimArea.origin.y * scale,
+//                          trimArea.size.width * scale,
+//                          trimArea.size.height * scale);
+//      }
+//      shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
+//      shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
+//      shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
+//    
+//    } else {
+//      x += shadowImageLeft.size.width;
+//    }
+//    i++;
+//  }
+//  
+//  // Draw left & right side edges
+//  x -= shadowImageLeft.size.width;
+//  trimArea = CGRectMake(0, 0, sizeEdgeWidth, leftImg.size.height);
+//  if (scale > 1.0f) {
+//    trimArea = CGRectMake(trimArea.origin.x * scale,
+//                      trimArea.origin.y * scale,
+//                      trimArea.size.width * scale,
+//                      trimArea.size.height * scale);
+//  }
+//  shadowImageRef = CGImageCreateWithImageInRect(leftImg.CGImage, trimArea);
+//  shadowImageLeft = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUp];
+//  shadowImageRight = [UIImage imageWithCGImage:shadowImageRef scale:scale orientation:UIImageOrientationUpMirrored];
+//  x += shadowImageLeft.size.width;
+//  
+//  y = 1;
+//  while (y + shadowImageLeft.size.height < rectSize.height) {
+//    [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
+//    [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
+//    y += shadowImageRight.size.height;
+//  }
+//  y = rectSize.height - shadowImageLeft.size.height;
+//  [shadowImageLeft drawAtPoint:CGPointMake(centerPos - x, y)];
+//  [shadowImageRight drawAtPoint:CGPointMake(centerPos + x - shadowImageLeft.size.width, y)];
+//  
   // Fill the body area with WHITE color
   CGContextRef context = UIGraphicsGetCurrentContext();
   CGContextSetAllowsAntialiasing(context, true);
