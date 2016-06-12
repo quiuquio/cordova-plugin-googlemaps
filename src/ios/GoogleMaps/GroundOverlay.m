@@ -84,32 +84,32 @@
     NSString *id = [NSString stringWithFormat:@"groundOverlay_icon_%lu", (unsigned long)layer.hash];
 
     NSError *error;
-    NSRange range = [urlStr rangeOfString:@"://"];
-    if (range.location == NSNotFound) {
-        range = [urlStr rangeOfString:@"www/"];
-        if (range.location == NSNotFound) {
-            range = [urlStr rangeOfString:@"/"];
-            if (range.location != 0) {
-                urlStr = [NSString stringWithFormat:@"./%@", urlStr];
-            }
-        }
-    }
-
-    range = [urlStr rangeOfString:@"./"];
-    if (range.location != NSNotFound) {
-        NSString *currentPath = [self.webView.request.URL absoluteString];
-        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"[^\\/]*$" options:NSRegularExpressionCaseInsensitive error:&error];
-        currentPath= [regex stringByReplacingMatchesInString:currentPath options:0 range:NSMakeRange(0, [currentPath length]) withTemplate:@""];
-        urlStr = [urlStr stringByReplacingOccurrencesOfString:@"./" withString:currentPath];
-    }
-
-    range = [urlStr rangeOfString:@"cdvfile://"];
+    NSRange range = [urlStr rangeOfString:@"cdvfile://"];
     if (range.location != NSNotFound) {
         urlStr = [PluginUtil getAbsolutePathFromCDVFilePath:self.webView cdvFilePath:urlStr];
         if (urlStr == nil) {
             NSMutableDictionary* details = [NSMutableDictionary dictionary];
             [details setValue:[NSString stringWithFormat:@"Can not convert '%@' to device full path.", urlStr] forKey:NSLocalizedDescriptionKey];
             error = [NSError errorWithDomain:@"world" code:200 userInfo:details];
+        }
+    }
+
+
+    range = [urlStr rangeOfString:@"://"];
+    if (range.location == NSNotFound) {
+        range = [urlStr rangeOfString:@"www/"];
+        if (range.location == NSNotFound) {
+            urlStr = [NSString stringWithFormat:@"www/%@", urlStr];
+        }
+
+        range = [urlStr rangeOfString:@"/"];
+        if (range.location != 0) {
+          // Get the absolute path of the www folder.
+          // https://github.com/apache/cordova-plugin-file/blob/1e2593f42455aa78d7fff7400a834beb37a0683c/src/ios/CDVFile.m#L506
+          NSString *applicationDirectory = [[NSURL fileURLWithPath:[[NSBundle mainBundle] resourcePath]] absoluteString];
+          urlStr = [NSString stringWithFormat:@"%@%@", applicationDirectory, urlStr];
+        } else {
+          urlStr = [NSString stringWithFormat:@"file://%@", urlStr];
         }
     }
 
